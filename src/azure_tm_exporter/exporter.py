@@ -48,6 +48,7 @@ def run_exporter(name, az_user, az_secret, az_tenant):
         logger.info(f"Found nameservers for {fqdn}: {ns}")
 
     ct = 0
+    seen = set()
     while restart_after == 0 or ct < restart_after:
         ct += 1
         logger.info(f"Checking (iteration {ct})")
@@ -62,6 +63,8 @@ def run_exporter(name, az_user, az_secret, az_tenant):
         hostval = ','.join(sorted(hosts))
         dns_check.labels(name, selected_sub, hostval, colorval).inc()
         t = time()
+        
+        processed = set()
         if ct % poll_azure_interval == 0:
             # Check Azure
             logger.info("Checking Azure")
@@ -74,7 +77,13 @@ def run_exporter(name, az_user, az_secret, az_tenant):
                     color = c.group(1)
                 else:
                     color = ""
-                endpoint_online.labels(name, selected_sub, target, color).set(online)
-                endpoint_last_seen.labels(name, selected_sub, target, color).set(t)
+                labels = (name, selected_sub, target, color)
+                seen.add(labels)
+                processed.add(labels)
+                endpoint_online.labels(*labels).set(online)
+                endpoint_last_seen.labels(*labels).set(t)
+        for labels in seen:
+            if not labels in processed:
+                endpoint_online.labels(*labels).set(0)
         sleep(1)
 
