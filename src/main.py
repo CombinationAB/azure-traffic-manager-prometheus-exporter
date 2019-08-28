@@ -16,18 +16,21 @@ def main():
     log_level = getattr(logging, log_level)
 
     azure_config_file = os.environ.get("AZ_CONFIG_FILE", "/azure.json")
-    if not os.path.isfile(azure_config_file):
-        raise IOError(f"Azure config file ({azure_config_file}) not found")
-    azure_config = json.load(open(azure_config_file))
-    az_user = azure_config.get("aadClientId")
-    if not az_user:
-        raise ValueError("This Azure config file lacks the service principal user (aadClientId)")
-    az_secret = azure_config.get("aadClientSecret")
-    if not az_secret:
-        raise ValueError("This Azure config file lacks the service principal secret (aadClientSecret)")
-    az_tenant = azure_config.get("tenantId")
-    if not az_tenant:
-        raise ValueError("This Azure config file lacks the service principal secret (tenantId)")
+    if azure_config_file != "-":
+        if not os.path.isfile(azure_config_file):
+            raise IOError(f"Azure config file ({azure_config_file}) not found")
+        azure_config = json.load(open(azure_config_file))
+        az_user = azure_config.get("aadClientId")
+        if not az_user:
+            raise ValueError("This Azure config file lacks the service principal user (aadClientId)")
+        az_secret = azure_config.get("aadClientSecret")
+        if not az_secret:
+            raise ValueError("This Azure config file lacks the service principal secret (aadClientSecret)")
+        az_tenant = azure_config.get("tenantId")
+        if not az_tenant:
+            raise ValueError("This Azure config file lacks the service principal secret (tenantId)")
+    else:
+        az_tenant = az_secret = az_user = az_config = None
     logging.basicConfig()
     logging.getLogger().setLevel(log_level)
     logging.getLogger("azure").setLevel(log_level)

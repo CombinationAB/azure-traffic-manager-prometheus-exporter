@@ -13,11 +13,28 @@ endpoint_last_seen = Gauge('azure_traffic_endpoint_last_seen', 'Azure Traffic Ma
 def run_exporter(name, az_user, az_secret, az_tenant):
     logger.info("Starting exporter")
 
-    result = az('login', '--service-principal', '-u', az_user, '-p', az_secret, '--tenant', az_tenant)
-    if not result:
-        raise ValueError(f"Service principal {az_user} has no access to any subscriptions")
-    subs = [x.get("id","") for x in result]
-    logger.info(f"Logged in to subscriptions {(','.join(subs))}")
+    if az_user is not None:
+        result = az('login', '--service-principal', '-u', az_user, '-p', az_secret, '--tenant', az_tenant)
+        if not result:
+            raise ValueError(f"Service principal {az_user} has no access to any subscriptions")
+        subs = [x.get("id","") for x in result]
+        logger.info(f"Logged in to subscriptions {(','.join(subs))}")
+
+    subscriptions = os.environ.get("AZ_SUBSCRIPTIONS")
+    if subscriptions:
+        subscriptions = [x.strip() for x in subscriptions.split(',')]
+    
+    all_subscriptions = {}
+    for sub in az("account", "list"):
+        if sub.get("name") and sub.get("id"):
+            all_subscriptions[sub["name"].lower()] = sub["id"].lower()
+            all_subscriptions[sub["id"].lower()] = sub["id"].lower()
+    if not subscriptions:
+        subscriptions = list(all_subscriptions.values())
+    else:
+        subscriptions = [all_subscriptions.get(x.lower()) for x in subscriptions if all_subscriptions.get(x.lower())]
+    subscriptions = sorted(set(subscriptions))
+
     restart_after = int(os.environ.get("RESTART_AFTER_ITERATIONS", "0"))
     
     poll_azure_interval = int(os.environ.get("AZ_POLL_INTERVAL", "10"))
@@ -28,7 +45,7 @@ def run_exporter(name, az_user, az_secret, az_tenant):
 
     selected_tm = None
     selected_sub = ""
-    for sub in subs:
+    for sub in subscriptions:
         tms = az('network', 'traffic-manager', 'profile', 'list', '--subscription', sub)
         for tm in tms:
             if tm.get('dnsConfig', {}).get('relativeName','') == name:
