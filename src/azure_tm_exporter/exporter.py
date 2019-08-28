@@ -51,7 +51,7 @@ def run_exporter(name, az_user, az_secret, az_tenant):
     seen = set()
     while restart_after == 0 or ct < restart_after:
         ct += 1
-        logger.info(f"Checking (iteration {ct})")
+        logger.debug(f"Checking (iteration {ct})")
         # Check DNS
         color = set()
         hosts = set()
@@ -82,8 +82,8 @@ def run_exporter(name, az_user, az_secret, az_tenant):
                 processed.add(labels)
                 endpoint_online.labels(*labels).set(online)
                 endpoint_last_seen.labels(*labels).set(t)
-        for labels in seen:
-            if not labels in processed:
-                endpoint_online.labels(*labels).set(0)
+            for labels in seen:
+                if not labels in processed:
+                    endpoint_online.labels(*labels).set(0)
         sleep(1)
 
