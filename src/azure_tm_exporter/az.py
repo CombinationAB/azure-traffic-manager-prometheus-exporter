@@ -4,6 +4,7 @@ logger = logging.getLogger(__name__)
 import azure.cli.core.azlogging
 
 class nop:
+    _COMMAND_METADATA_LOGGER = 'az_command_data_logger'
     def __init__(self, *a, **kw):
         pass
 
