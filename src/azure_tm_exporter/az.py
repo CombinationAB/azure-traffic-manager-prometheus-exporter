@@ -1,6 +1,16 @@
 import logging
 logger = logging.getLogger(__name__)
 
+import azure.cli.core.azlogging
+
+class nop:
+    def __init__(self, *a, **kw):
+        pass
+
+    def configure(self, *a): pass
+
+azure.cli.core.azlogging.AzCliLogging = nop
+
 def az_raw(*args):
     args=[str(arg) for arg in args]
     from azure.cli.core import get_default_cli
